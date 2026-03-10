@@ -40,7 +40,7 @@ template injection, output encoding, open redirects, and file upload security.
 
 ### Layer 1: Pattern Scan
 
-Read `~/.claude/skills/casa-audit/references/detection-patterns.md`, sections:
+Read `references/detection-patterns.md`, sections:
 - **V5: Validation, Sanitization and Encoding** patterns
 - **V12: Files and Resources** patterns
 
@@ -132,7 +132,7 @@ Impact: <1-2 sentence description of security impact>
 Remediation: <specific fix with code example if applicable>
 ```
 
-**Severity:** Use `~/.claude/skills/casa-audit/references/severity-matrix.md`.
+**Severity:** Use `references/severity-matrix.md`.
 Most V5 findings are High exploit-likelihood (Critical/High severity).
 Remember: ALL 73 requirements must pass regardless of CWE rating.
 

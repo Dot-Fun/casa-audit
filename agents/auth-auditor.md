@@ -44,7 +44,7 @@ Follow a strict **two-layer detection** approach for every requirement:
 
 ### Layer 1: Pattern Scan
 
-Read `~/.claude/skills/casa-audit/references/detection-patterns.md`, sections:
+Read `references/detection-patterns.md`, sections:
 - **V1: Architecture** patterns
 - **V2: Authentication** patterns
 - **V3: Session Management** patterns
@@ -128,7 +128,7 @@ Remediation: <specific fix with code example if applicable>
 ```
 
 **Severity assignment:**
-- Read `~/.claude/skills/casa-audit/references/severity-matrix.md`
+- Read `references/severity-matrix.md`
 - Look up the ASVS ID -> CWE -> Exploit Likelihood -> Default Severity
 - Adjust severity per the override rules if compensating controls exist
 - Remember: ALL 73 requirements must pass regardless of CWE rating

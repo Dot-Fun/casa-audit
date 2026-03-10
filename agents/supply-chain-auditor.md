@@ -21,7 +21,7 @@ libraries.
 
 ### Layer 1: Pattern Scan
 
-Read `~/.claude/skills/casa-audit/references/detection-patterns.md`, sections:
+Read `references/detection-patterns.md`, sections:
 - **V10: Malicious Code** patterns
 
 Run each grep/glob pattern. Record all matches with file:line.
@@ -110,7 +110,7 @@ Impact: <1-2 sentence description of security impact>
 Remediation: <specific fix - remove unauthorized call, document data collection, etc.>
 ```
 
-**Severity:** Use `~/.claude/skills/casa-audit/references/severity-matrix.md`.
+**Severity:** Use `references/severity-matrix.md`.
 V10.3.2 and V10.3.3 findings vary by impact — unauthorized data collection is
 typically High, while time bombs are Critical if destructive.
 Remember: ALL 73 requirements must pass regardless of CWE rating.

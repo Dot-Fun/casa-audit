@@ -11,15 +11,29 @@ description:
 
 # CASA Security Audit Skill
 
-Performs a comprehensive CASA security audit using an agent team of 7 domain specialists.
-Evaluates all 73 CASA-required ASVS 4.0.3 controls and produces a compliance report.
+Performs a comprehensive CASA security audit using a static-analysis team of 7
+domain specialists plus completion-phase agents for runtime validation,
+adjudication, remediation verification, and submission packaging.
 
 ## Prerequisites
 
 - Agent teams enabled: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 - Atlassian MCP available (optional, for Jira ticket creation)
+- Browser/API runtime tooling available (recommended for dynamic validation)
 
 ## Execution Flow
+
+### Phase 0: Run Initialization (~15 seconds)
+
+1. Create output directories:
+   - `docs/audit/`
+   - `docs/audit/evidence/raw/`
+   - `docs/audit/evidence/normalized/`
+   - `docs/audit/state/`
+   - `docs/audit/submission/`
+2. Initialize run state at `docs/audit/state/run-state.json`
+   - Optional helper: run `scripts/init_casa_audit.sh {RUN_ID} {PROJECT_NAME}`
+3. Read `workflows/agentic-casa-workflow.md` for state transitions and fallback handling
 
 ### Phase 1: Project Discovery (~30 seconds)
 
@@ -34,14 +48,14 @@ Read `references/stack-detection.md` for detection heuristics, then scan the cod
 
 Output a `{PROJECT_PROFILE}` text block containing: languages, frameworks, auth mechanism, database, infrastructure, OAuth scopes, recommended CASA tier.
 
-### Phase 2: Team Creation and Task Assignment (~1 minute)
+### Phase 2: Static Team Creation and Task Assignment (~1 minute)
 
 1. Create team:
    ```
    TeamCreate: name="casa-audit", description="CASA security audit of {PROJECT_NAME}"
    ```
 
-2. Read all 7 agent files from `agents/` directory:
+2. Read all 7 static specialist files from `agents/` directory:
    - `agents/auth-auditor.md` (V1, V2, V3 — 20 controls)
    - `agents/access-data-auditor.md` (V4, V8 — 13 controls)
    - `agents/input-output-auditor.md` (V5, V12 — 18 controls)
@@ -62,7 +76,7 @@ Output a `{PROJECT_PROFILE}` text block containing: languages, frameworks, auth 
    TaskCreate: "Audit V2 Authentication controls (V2.1.1, V2.3.1, V2.4.1, V2.5.4, V2.6.1, V2.7.2, V2.7.6)"
    ```
 
-### Phase 3: Parallel Audit (~5-10 minutes)
+### Phase 3: Parallel Static Audit (~5-10 minutes)
 
 Each specialist follows a **two-layer detection pattern** (see `references/detection-patterns.md`):
 
@@ -96,9 +110,41 @@ N/A: [ASVS_ID]
 Reason: <why not applicable to this stack>
 ```
 
-The lead monitors progress via TaskList and SendMessage. If a specialist is stuck, nudge them. If cross-cutting findings are discovered, relay to the relevant specialist.
+The lead monitors progress via TaskList and SendMessage. If a specialist is stuck,
+nudge them. If cross-cutting findings are discovered, relay to the relevant specialist.
 
-### Phase 4: Synthesis (~2-3 minutes)
+### Phase 4: Runtime Validation (~3-8 minutes)
+
+Spawn `agents/runtime-dast-auditor.md` and validate runtime-heavy controls:
+- Session invalidation and reauthentication controls
+- CSRF and method enforcement
+- Anti-automation/rate limiting
+- Cache and client storage behavior
+- TLS/certificate behavior where testable
+- Debug mode exposure
+
+Write runtime artifacts to `docs/audit/evidence/raw/`.
+
+### Phase 5: Evidence Normalization (~1-2 minutes)
+
+1. Convert all static and runtime results into schema-compliant records using
+   `references/evidence-schema.md`
+2. Write normalized records to:
+   - `docs/audit/evidence/normalized/control-evidence.jsonl`
+3. Reject incomplete PASS/FAIL/N/A records per schema quality gates
+
+### Phase 6: Adjudication (~1-3 minutes)
+
+Spawn `agents/adjudication-auditor.md` to resolve:
+- Conflicting findings on the same control
+- Low-confidence findings
+- `N/A` decisions lacking objective proof
+
+Write outputs:
+- `docs/audit/state/adjudication-log.md`
+- `docs/audit/state/adjudication-decisions.json`
+
+### Phase 7: Synthesis (~2-3 minutes)
 
 After all specialists complete:
 
@@ -113,7 +159,18 @@ After all specialists complete:
 6. Generate report using `references/report-template.md`
 7. Write report to `docs/audit/casa-audit-report.md`
 
-### Phase 5: Jira Ticket Creation (~1 minute, optional)
+### Phase 8: Remediation and Retest Loop (~5+ minutes, optional but recommended)
+
+Spawn `agents/remediation-verifier.md` and iterate until closure criteria:
+- No open Critical/High findings
+- All 73 controls are PASS or adjudicated N/A
+
+Track in:
+- `docs/audit/state/remediation-plan.md`
+- `docs/audit/state/retest-log.md`
+- `docs/audit/state/remediation-status.json`
+
+### Phase 9: Jira Ticket Creation (~1 minute, optional)
 
 If Atlassian MCP is available:
 
@@ -127,9 +184,20 @@ If Atlassian MCP is available:
 
 If Atlassian MCP is not available, skip this phase and note in the report that Jira integration was not configured.
 
-### Phase 6: Cleanup
+### Phase 10: Submission Packaging and Sign-off (~1-2 minutes)
 
-1. Send shutdown requests to all 7 specialists
+Spawn `agents/submission-packager.md` to produce:
+- `docs/audit/submission/control-matrix.csv`
+- `docs/audit/submission/evidence-index.md`
+- `docs/audit/submission/reviewer-attestation.md`
+- `docs/audit/submission/casa-submission-checklist.md`
+- `docs/audit/submission/submission-manifest.json`
+
+Validate against `references/casa-completion-checklist.md`.
+
+### Phase 11: Cleanup
+
+1. Send shutdown requests to all active specialists
 2. `TeamDelete` to clean up the team
 3. Report final summary to the user:
    - Overall PASS/FAIL status
@@ -146,10 +214,15 @@ If Atlassian MCP is not available, skip this phase and note in the report that J
 | `references/detection-patterns.md` | Grep/glob patterns per ASVS chapter | Phase 2 (injected into agent context) |
 | `references/severity-matrix.md` | CWE exploit-likelihood mappings for prioritization | Phase 4 (for severity classification) |
 | `references/stack-detection.md` | Auto-detect project stack and CASA tier | Phase 1 (for project discovery) |
-| `references/report-template.md` | Final report structure with placeholders | Phase 4 (for report generation) |
-| `agents/*.md` | 7 specialist spawn prompts | Phase 2 (for team creation) |
+| `references/report-template.md` | Final report structure with placeholders | Phase 7 (for report generation) |
+| `references/evidence-schema.md` | Required schema for normalized control evidence | Phase 5 (normalization) |
+| `references/casa-completion-checklist.md` | Final readiness gates and human sign-off checks | Phase 10 (submission readiness) |
+| `workflows/agentic-casa-workflow.md` | Stateful orchestration model, fallback behavior, completion criteria | Phase 0 (run initialization) |
+| `templates/run-state.template.json` | Starter run-state structure for reproducible runs | Phase 0 (initialization) |
+| `templates/control-evidence-record.template.json` | Starter per-control evidence record format | Phase 5 (normalization) |
+| `agents/*.md` | Static specialists + completion-phase specialists | Phases 2, 4, 6, 8, 10 |
 
-## Specialist Coverage Map
+## Static Specialist Coverage Map
 
 | Specialist | ASVS Chapters | Controls | Focus |
 |-----------|---------------|----------|-------|
@@ -160,6 +233,15 @@ If Atlassian MCP is not available, skip this phase and note in the report that J
 | ops-auditor | V7, V14 | 6 | Logging, config, hardening |
 | api-logic-auditor | V11, V13 | 4 | Business logic, API security |
 | supply-chain-auditor | V10 | 2 | Dependencies, malicious code |
+
+## Completion-Phase Agent Map
+
+| Specialist | Role | Primary Output |
+|-----------|------|----------------|
+| runtime-dast-auditor | Runtime validation for dynamic controls | Runtime artifacts in `docs/audit/evidence/raw/` |
+| adjudication-auditor | Resolve disputes, enforce N/A rigor | `adjudication-log.md`, adjudication decisions |
+| remediation-verifier | Fix/retest closure loop | Remediation status and retest logs |
+| submission-packager | Build submission bundle | `docs/audit/submission/*` |
 
 ## CASA Tier Recommendation Logic
 
@@ -179,13 +261,15 @@ If Atlassian MCP is not available, skip this phase and note in the report that J
 2. **False positives**: Always do Layer 2 (read context) before reporting a finding.
 3. **N/A handling**: Requirements not applicable to the stack are marked N/A with justification.
 4. **Generic skill**: Stack auto-detected via heuristics. No hardcoded project knowledge.
-5. **Static analysis only**: This audit does not include DAST, pen testing, or fuzzing.
-6. **Jira optional**: Works without Atlassian MCP — just skips ticket creation.
+5. **Evidence required**: PASS/FAIL/N/A must have schema-compliant evidence records.
+6. **Dynamic controls**: Runtime-heavy controls require runtime validation or explicit blocked status.
+7. **Jira optional**: Works without Atlassian MCP — just skips ticket creation.
+8. **Submission gating**: Do not declare CASA complete without checklist sign-off.
 
 ## Limitations
 
-- No DAST or runtime testing — CASA Tier 2+ requires OWASP ZAP scans
+- Runtime validation quality depends on availability of staging/test environment
 - No infrastructure pen testing — cloud infrastructure is out of scope
-- Some ASVS requirements (rate limiting, session timeout) need runtime verification
+- Some controls may still require external lab or manual assessor confirmation
 - Generated/vendored/obfuscated code may not be fully analyzed
 - Does not replace a Tier 3 authorized lab assessment

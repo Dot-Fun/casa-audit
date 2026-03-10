@@ -31,7 +31,7 @@ generation, TLS certificate validation, and certificate revocation.
 
 ### Layer 1: Pattern Scan
 
-Read `~/.claude/skills/casa-audit/references/detection-patterns.md`, sections:
+Read `references/detection-patterns.md`, sections:
 - **V6: Stored Cryptography** patterns
 - **V9: Communication** patterns
 
@@ -132,7 +132,7 @@ Impact: <1-2 sentence description of security impact>
 Remediation: <specific fix with code example if applicable>
 ```
 
-**Severity:** Use `~/.claude/skills/casa-audit/references/severity-matrix.md`.
+**Severity:** Use `references/severity-matrix.md`.
 Remember: ALL 73 requirements must pass regardless of CWE rating.
 
 ## Task Workflow
