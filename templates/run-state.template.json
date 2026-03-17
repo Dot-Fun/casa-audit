@@ -1,0 +1,17 @@
+{
+  "run_id": "casa-YYYYMMDD-001",
+  "project_name": "replace-me",
+  "started_at": "2026-03-10T00:00:00Z",
+  "updated_at": "2026-03-10T00:00:00Z",
+  "status": "running",
+  "phase": "P0",
+  "controls_total": 73,
+  "controls_completed": 0,
+  "controls_failed": 0,
+  "controls_passed": 0,
+  "controls_na": 0,
+  "open_disputes": 0,
+  "open_remediations": 0,
+  "agents": {}
+}
+

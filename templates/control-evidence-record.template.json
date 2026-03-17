@@ -1,0 +1,24 @@
+{
+  "run_id": "casa-YYYYMMDD-001",
+  "asvs_id": "V1.1.4",
+  "status": "PASS",
+  "confidence": "high",
+  "source": "auth-auditor",
+  "finding_id": "",
+  "cwe": "",
+  "severity": "",
+  "summary": "Trust boundaries are documented",
+  "evidence_refs": [
+    "docs/audit/evidence/raw/example-artifact.md"
+  ],
+  "location_refs": [
+    "docs/architecture.md:1"
+  ],
+  "reproduction_steps": [],
+  "expected_behavior": "",
+  "observed_behavior": "",
+  "na_reason": "",
+  "reviewer": "",
+  "timestamp": "2026-03-10T00:00:00Z"
+}
+
